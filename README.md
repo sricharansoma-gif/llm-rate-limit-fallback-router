@@ -14,7 +14,7 @@ Client
   -> Primary provider
        -> success: return response
        -> HTTP 429: fallback provider
-       -> timeout: fallback provider
+       -> timeout: abort primary and use fallback provider
   -> standardized safe error response on failure
 ```
 
@@ -36,7 +36,7 @@ SQLite uses WAL mode, a busy timeout, and an index on tenant and timestamp for e
 
 - Primary success returns immediately without calling fallback
 - Primary HTTP 429 triggers the fallback provider exactly once
-- Primary requests that do not complete within 3,000 ms trigger fallback
+- Primary requests that do not complete within 3,000 ms are aborted with `AbortController` and trigger fallback
 - Non-429 4xx and 5xx responses do not automatically trigger fallback
 - Late primary settlement after timeout cannot overwrite the fallback result
 - Timers and routing state are request-local
@@ -114,7 +114,6 @@ See [TEST_PLAN.md](./TEST_PLAN.md) for the full acceptance-test contract.
 The implementation deliberately matches the assessment scope. For a horizontally scaled production gateway, likely extensions include:
 
 - server-side tokenization instead of trusting caller-supplied token counts
-- cancellation of timed-out upstream requests with `AbortController`
 - a centralized rate-limit store such as Redis instead of per-instance SQLite
 - periodic cleanup/retention policies for historical usage records
 - production identity, secret management, observability, and provider integrations
